@@ -1,1 +1,1 @@
-module github.com/sixt/protoc
+module bitbucket.org/sixtgoorange/protoc
