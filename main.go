@@ -17,9 +17,10 @@ import (
 const version = "3.6.1"
 
 func main() {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		dir = os.TempDir()
+	dir := os.TempDir()
+	exePath, err := os.Executable()
+	if err == nil {
+		dir = filepath.Dir(exePath)
 	}
 
 	protocExeName := fmt.Sprintf("protoc-%s-%s_%s.exe", version, runtime.GOOS, runtime.GOARCH)
