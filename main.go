@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -14,62 +13,28 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
-
-	git "gopkg.in/src-d/go-git.v4"
-	plumbing "gopkg.in/src-d/go-git.v4/plumbing"
-	transport "gopkg.in/src-d/go-git.v4/plumbing/transport"
-	http "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	ssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
 //go:generate go run -tags generate gen.go 3.6.1
 
 const version = "3.6.1"
 
-func netrcAuth(importPath string) transport.AuthMethod {
-	u, err := url.Parse("https://" + importPath)
-	if err != nil {
-		return nil
-	}
-	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".netrc"))
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-	username, password, err := netrc(f, u.Host)
-	if err != nil {
-		return nil
-	}
-	if username == "" && password == "" {
-		return nil
-	}
-	return &http.BasicAuth{Username: username, Password: password}
+type repo interface {
+	Checkout(rev string) error
 }
 
-func sshAuth() transport.AuthMethod {
-	auth, _ := ssh.NewSSHAgentAuth("git")
-	return auth
-}
+const latestRev = "latest"
 
-func auth(url string) (transport.AuthMethod, string) {
-	auth := netrcAuth(url)
-	schema := "https://"
-	if auth == nil {
-		auth = sshAuth()
-		schema = "ssh://"
-	}
-	return auth, schema
-}
-
-func openRepo(url string) (*git.Repository, string, string, error) {
+func openRepo(url string) (repo, string, string, error) {
 	parts := strings.Split(url, "/")
-	for i := len(parts) - 1; i > 0; i-- {
+	for i := len(parts); i > 0; i-- {
 		dir := filepath.Join(cacheDir(), "protoc", "repos", filepath.Join(parts[:i]...))
 		// Sometimes go-git gives false positives, check for .git directory before PlainOpen()
 		if info, err := os.Stat(filepath.Join(dir, ".git")); err != nil || !info.IsDir() {
 			continue
 		}
-		repo, err := git.PlainOpen(dir)
+		repoURL := path.Join(parts[:i]...)
+		repo, err := gitOpenDir(repoURL, dir)
 		if err == nil {
 			log.Println("Use cached repository:", dir)
 			return repo, dir, filepath.Join(dir, filepath.Join(parts[i:]...)), nil
@@ -78,26 +43,22 @@ func openRepo(url string) (*git.Repository, string, string, error) {
 	return nil, "", "", errors.New("failed to open " + url)
 }
 
-func cloneRepo(url string) (*git.Repository, string, error) {
-	auth, schema := auth(url)
+func cloneRepo(url string) (repo, string, error) {
 	parts := strings.Split(url, "/")
-	for i := 0; i < len(parts); i++ {
+	for i := 1; i <= len(parts); i++ {
 		repoURL := path.Join(parts[:i]...)
 		dir := filepath.Join(cacheDir(), "protoc", "repos", repoURL)
 		os.MkdirAll(dir, 0755)
-		log.Println("Trying to clone", schema+repoURL+".git", "into", dir)
-		repo, err := git.PlainClone(dir, false, &git.CloneOptions{
-			URL:  schema + repoURL + ".git",
-			Auth: auth,
-		})
+		log.Println("Trying to clone", repoURL, "into", dir)
+		repo, err := gitCloneDir(repoURL, dir)
 		if err == nil {
-			log.Println("Cloned repository:", dir, schema+repoURL+".git")
+			log.Println("Cloned repository:", dir, repoURL)
 			return repo, filepath.Join(dir, filepath.Join(parts[i:]...)), nil
 		} else if gitInfo, err := os.Stat(filepath.Join(dir, ".git")); err == nil && gitInfo.IsDir() {
-			os.RemoveAll(filepath.Join(dir, ".git"))
+			os.RemoveAll(dir)
 		}
 	}
-	return nil, "", errors.New("clone failed: " + schema + url)
+	return nil, "", errors.New("clone failed: " + url)
 }
 
 func downloadProto(url string) (string, error) {
@@ -108,65 +69,18 @@ func downloadProto(url string) (string, error) {
 		url = url[:i]
 	}
 	repo, dir, local, err := openRepo(url)
-	if err == nil && rev == "latest" {
+	if err == nil && rev == latestRev {
 		log.Println("Invalidate cached directory:", dir)
 		os.RemoveAll(dir)
 	}
-	if err != nil || rev == "latest" {
+	if err != nil || rev == latestRev {
 		repo, local, err = cloneRepo(url)
 	}
 	if err != nil {
 		return "", err
 	}
-	w, err := repo.Worktree()
-	if err != nil {
-		return "", err
-	}
-	auth, _ := auth(url)
-
-	if rev == "" || rev == "latest" {
-		if rev == "" {
-			if err := w.Pull(&git.PullOptions{
-				RemoteName: "origin",
-				Auth:       auth,
-			}); err != nil && err != git.NoErrAlreadyUpToDate {
-				// Ignore if pull fails, try our best to work offline
-				log.Println("Git pull failed:", err)
-			}
-		}
-		ref, err := repo.Head()
-		if err != nil {
-			return "", err
-		}
-		rev = ref.Hash().String()
-		log.Println("Using HEAD revision", rev)
-	} else {
-		tagrefs, err := repo.Tags()
-		if err != nil {
-			return "", err
-		}
-		found := false
-		tagrefs.ForEach(func(t *plumbing.Reference) error {
-			if !found && strings.TrimPrefix(t.Name().String(), "refs/tags/") == rev {
-				found = true
-				rev = t.Hash().String()
-				annotated, err := repo.TagObject(t.Hash())
-				if err == nil {
-					rev = annotated.Target.String()
-				}
-				log.Println("Using tag ", t.Name().String(), "revision", rev)
-			}
-			return nil
-		})
-	}
-
-	err = w.Checkout(&git.CheckoutOptions{
-		Hash: plumbing.NewHash(rev),
-	})
-	if err != nil {
-		return "", err
-	}
-	return local, nil
+	err = repo.Checkout(rev)
+	return local, err
 }
 
 // processArgs converts protoc command line arguments by replacing remote
@@ -231,7 +145,7 @@ func execute(exe string, args ...string) int {
 
 // cacheDir returns a path to the local user cache using XDG base directory
 // specification or OS standard directories.
-func cacheDir() string {
+var cacheDir = func() string {
 	switch runtime.GOOS {
 	case "darwin":
 		return os.Getenv("HOME") + "/Library/Caches"
