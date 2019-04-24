@@ -2,6 +2,12 @@
 
 This is a small and simple [protoc][protoc] wrapper.
 
+- [protoc](#protoc)
+  * [Features:](#markdown-header-features-)
+  * [How it works](#markdown-header-how-it-works)
+  * [How to use it in Go](#markdown-header-how-to-use-it-in-go)
+  * [How to use it in Java](#markdown-header-how-to-use-it-in-java)
+
 ## Features:
 
 It is go-gettable. One can do `go get bitbucket.org/sixtgoorange/protoc` to
