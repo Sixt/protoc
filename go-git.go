@@ -81,18 +81,7 @@ func (r *gitRepo) Checkout(rev string) error {
 	if err != nil {
 		return err
 	}
-	auth, _ := auth(r.url)
-
 	if rev == "" || rev == latestRev {
-		if rev == "" {
-			if err := w.Pull(&git.PullOptions{
-				RemoteName: "origin",
-				Auth:       auth,
-			}); err != nil && err != git.NoErrAlreadyUpToDate {
-				// Ignore if pull fails, try our best to work offline
-				log.Println("Git pull failed:", err)
-			}
-		}
 		ref, err := r.repo.Head()
 		if err != nil {
 			return err
@@ -123,6 +112,22 @@ func (r *gitRepo) Checkout(rev string) error {
 		Hash: plumbing.NewHash(rev),
 	})
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *gitRepo) Fetch() error {
+	w, err := r.repo.Worktree()
+	if err != nil {
+		return err
+	}
+	auth, _ := auth(r.url)
+	if err := w.Pull(&git.PullOptions{
+		RemoteName: "origin",
+		Auth:       auth,
+	}); err != nil && err != git.NoErrAlreadyUpToDate {
+		// Ignore if pull fails, try our best to work offline
 		return err
 	}
 	return nil

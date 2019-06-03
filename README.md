@@ -21,14 +21,11 @@ One can also specify a commit hash or a git tag to use a specific revision of
 the proto file: `protoc example.org/file.proto@v1.2.3`. If no revision is
 specified - the latest HEAD revision is used.
 
-Additionally, if no revision is specified then on every run "git pull" will be
-executed trying to fetch the latest revision. Errors are ignored if it fails,
-making it safe to use offline. A special reserved revision "latest" can be used
-to force removal of the repository and cloning the most recent version. This
-should be used to invalidate git cache for a particular revision.
-
-Both cases (no revision or "latest" revision) are slower than using particular
-tags or commit hashes, where local git cache is reused without network access.
+Cache is synced up with the remote only when the requested tag or revision is
+not found. This means if you use a remote proto file without specifying a
+particular commit hash or git tag - the initially fetched revision will be used.
+A special revision name "latest" can be used to invalidate cache. In this case,
+the old cached repository is removed and is cloned once again from scratch.
 
 Wrapper binaries are also published to Nexus, so that they could be used in
 Java build process as well.
@@ -47,10 +44,18 @@ machine. If not - then it's likely to be a remote proto file URL.
 
 In this case, wrapper clones the remote Git repo, fetches the requested
 revision, and replaces the remote URL with a path to the local file in the
-cache.
+cache. Similarly, if remote Git repo is provided as an include path using `-I`
+or `--proto_path` flag - it gets substituted with a locally cached path.
 
-For cloning/pulling repositories wrapper uses [go-git][go-git] library. It
-supports authentication via `$HOME/.netrc` username/password, or SSH (using
+Default git implementation uses command line git tool. Wrapper also supports
+build constraint `gogit` that uses [go-git][go-git] library for git fetch and
+checkout. It is known to be slower than command-line git, but might be helpful
+if command-line git tool is unavailable.
+
+Wrapper supports authentication via `$HOME/.gitconfig`. It always uses https
+scheme for fetching, but one can specify `insteadOf` rule to use ssh for
+particular URLs. Go-git build variant is a bit different and supports
+authentication via `$HOME/.netrc` username/password, or SSH (using
 `$HOME/.ssh/id_rsa` keys).
 
 ## How to use it in Go
@@ -116,7 +121,7 @@ dependencies {
 // Create separate configuration for protoc artifacts
 configurations { protoc }
 dependencies {
-  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '0.0.0-dev', ext: 'exe',
+  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.8.0', ext: 'exe',
     classifier: [
       'Linux:amd64': 'linux-x86_64',
       'Linux:i386': 'linux-x86_32',

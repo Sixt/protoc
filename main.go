@@ -15,12 +15,13 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.7.1
+//go:generate go run -tags generate gen.go 3.8.0
 
-const version = "3.7.1"
+const version = "3.8.0"
 
 type repo interface {
 	Checkout(rev string) error
+	Fetch() error
 }
 
 const latestRev = "latest"
@@ -80,6 +81,13 @@ func downloadProto(url string) (string, error) {
 		return "", err
 	}
 	err = repo.Checkout(rev)
+	if err != nil {
+		if err := repo.Fetch(); err != nil {
+			log.Println("fetch failed:", err)
+		} else {
+			err = repo.Checkout(rev)
+		}
+	}
 	return local, err
 }
 
@@ -88,9 +96,27 @@ func downloadProto(url string) (string, error) {
 func processArgs(in []string) ([]string, []string, error) {
 	out := []string{}
 	files := []string{}
-	for _, arg := range in {
+	for n, arg := range in {
 		if strings.HasPrefix(arg, "-") {
-			// Command line options are passed as is
+			// Obsolete, but still supported syntax `-I <somedir>`
+			// Change to the regular syntax `-I=<somedir>`
+			if arg == "-I" && n < len(in)-1 {
+				in[n+1] = "-I=" + in[n+1]
+				continue
+			}
+			// Command line options are passed as is, except for remote include paths
+			path := ""
+			for _, prefix := range []string{"--proto_path=", "-I=", "-I"} {
+				if strings.HasPrefix(arg, prefix) {
+					path = strings.TrimPrefix(arg, prefix)
+					break
+				}
+			}
+			if path != "" {
+				if _, err := os.Stat(path); os.IsNotExist(err) {
+					arg = "-I=" + cacheFile(filepath.Join("repos", path))
+				}
+			}
 			out = append(out, arg)
 		} else if _, err := os.Stat(arg); !os.IsNotExist(err) {
 			// Local proto files are passed as is. Stat() errors are ignored allowing
@@ -146,6 +172,9 @@ func execute(exe string, args ...string) int {
 // cacheDir returns a path to the local user cache using XDG base directory
 // specification or OS standard directories.
 var cacheDir = func() string {
+	if dir := os.Getenv("PROTOC_CACHE_DIR"); dir != "" {
+		return dir
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		return os.Getenv("HOME") + "/Library/Caches"

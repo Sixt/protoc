@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 )
 
 type gitRepo struct {
@@ -35,13 +34,11 @@ func (r *gitRepo) Checkout(rev string) error {
 		return err
 	}
 	if rev == "" || rev == latestRev {
-		if rev == "" {
-			if err := gitCmd("-C", r.dir, "pull"); err != nil {
-				// Ignore if pull fails, try our best to work offline
-				log.Println("Git pull failed:", err)
-			}
-		}
 		rev = "HEAD"
 	}
 	return gitCmd("-C", r.dir, "checkout", "-q", rev)
+}
+
+func (r *gitRepo) Fetch() error {
+	return gitCmd("-C", r.dir, "pull")
 }
