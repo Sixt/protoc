@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -45,21 +46,42 @@ func openRepo(url string) (repo, string, string, error) {
 }
 
 func cloneRepo(url string) (repo, string, error) {
+	for _, vcsPath := range []string{
+		`^(github\.com/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+)((/[\p{L}0-9_.\-]+)*)$`,
+		`^(bitbucket\.org/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+)((/[A-Za-z0-9_.\-]+)*)$`,
+	} {
+		re := regexp.MustCompile(vcsPath)
+		if m := re.FindStringSubmatch(url); m != nil {
+			if repo, dir, err := tryCloneRepo(m[1]); err == nil {
+				return repo, filepath.Join(dir, m[2]), nil
+			} else {
+				return nil, "", err
+			}
+		}
+	}
 	parts := strings.Split(url, "/")
 	for i := 1; i <= len(parts); i++ {
 		repoURL := path.Join(parts[:i]...)
-		dir := filepath.Join(cacheDir(), "protoc", "repos", repoURL)
-		os.MkdirAll(dir, 0755)
-		log.Println("Trying to clone", repoURL, "into", dir)
-		repo, err := gitCloneDir(repoURL, dir)
-		if err == nil {
-			log.Println("Cloned repository:", dir, repoURL)
+		if repo, dir, err := tryCloneRepo(repoURL); err == nil {
 			return repo, filepath.Join(dir, filepath.Join(parts[i:]...)), nil
-		} else if gitInfo, err := os.Stat(filepath.Join(dir, ".git")); err == nil && gitInfo.IsDir() {
-			os.RemoveAll(dir)
 		}
 	}
 	return nil, "", errors.New("clone failed: " + url)
+}
+
+func tryCloneRepo(repoURL string) (repo, string, error) {
+	dir := filepath.Join(cacheDir(), "protoc", "repos", repoURL)
+	os.MkdirAll(dir, 0755)
+	log.Println("Trying to clone", repoURL, "into", dir)
+	repo, cloneErr := gitCloneDir(repoURL, dir)
+	if cloneErr == nil {
+		log.Println("Cloned repository:", dir, repoURL)
+		return repo, dir, nil
+	}
+	if gitInfo, err := os.Stat(filepath.Join(dir, ".git")); err == nil && gitInfo.IsDir() {
+		os.RemoveAll(dir)
+	}
+	return nil, "", cloneErr
 }
 
 func downloadProto(url string) (string, error) {
