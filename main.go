@@ -16,9 +16,9 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.8.0
+//go:generate go run -tags generate gen.go 3.9.0
 
-const version = "3.8.0"
+const version = "3.9.0"
 
 type repo interface {
 	Checkout(rev string) error
