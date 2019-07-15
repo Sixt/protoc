@@ -149,6 +149,23 @@ task proto(type: Exec) {
 compileJava.dependsOn(proto)
 ```
 
+## Versioning
+
+To avoid confusion between the original Google's protoc compiler and this
+wrapper it was decided to use the following versioning: major, minor and patch
+versions of the wrapper MUST correspond to the one of the underlying protoc
+compiler. However, if a bugfix is required in a wrapper while keeping the same
+version of the original protoc compiler - a patch version is increased with a
+pre-released identifier appended.
+
+Here's an example. Protoc 1.2.3 is released and wrapped with a version v1.2.3
+as well. Then, a bug in a wrapper gets fixed and wrapper v1.2.4-1 is released.
+Another bug is fixed and v1.2.4-2 is released. It takes higher priority than
+v1.2.3, but would be lower than v1.2.4. So once protoc 1.2.4 is released and
+wrapped under the version v1.2.4 - that will include our fixes and take the
+priority. This versioning approach should work with all systems that suppport
+semver.
+
 [protoc]: https://github.com/protocolbuffers/protobuf/tree/master/src
 [tools-go]: https://golang.org/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module]
 [go-git]: https://github.com/src-d/go-git

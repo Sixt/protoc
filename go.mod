@@ -1,4 +1,4 @@
-module bitbucket.org/sixtgoorange/protoc
+module bitbucket.org/sixtgoorange/protoc/v3
 
 go 1.12
 
