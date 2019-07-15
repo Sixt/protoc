@@ -76,14 +76,14 @@ Here's a sample tools.go:
 //+build tools
 package example
 
-//go:generate go install bitbucket.org/sixtgoorange/protoc
+//go:generate go install bitbucket.org/sixtgoorange/protoc/v3
 //go:generate go install github.com/golang/protobuf/protoc-gen-go
 //go:generate go install github.com/micro/protoc-gen-micro
 
 //go:generate protoc --go_out=. --micro_out=. foo.proto
 
 import (
-	_ "bitbucket.org/sixtgoorange/protoc"
+	_ "bitbucket.org/sixtgoorange/protoc/v3"
 	_ "github.com/golang/protobuf/protoc-gen-go"
 	_ "github.com/micro/protoc-gen-micro"
 )
