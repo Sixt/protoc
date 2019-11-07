@@ -121,13 +121,15 @@ dependencies {
 // Create separate configuration for protoc artifacts
 configurations { protoc }
 dependencies {
-  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.8.0', ext: 'exe',
-    classifier: [
-      'Linux:amd64': 'linux-x86_64',
-      'Linux:i386': 'linux-x86_32',
-      'Mac OS X:amd64': 'osx-x86_64',
-      'Mac OS X:x86_64': 'osx-x86_64',
-    ]["${System.getProperty('os.name')}:${System.getProperty('os.arch')}"]
+    protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.9.0', ext: 'exe',
+           classifier: [
+               'Windows:amd64': 'windows-x86_64',
+               'Windows:i386': 'windows-x86_32',
+               'Linux:amd64': 'linux-x86_64',
+               'Linux:i386': 'linux-x86_32',
+               'Mac OS X:amd64': 'osx-x86_64',
+               'Mac OS X:x86_64': 'osx-x86_64',
+           ]["${System.getProperty("os.name").toLowerCase().contains("windows") ? "Windows" : System.getProperty('os.name')}:${System.getProperty('os.arch')}"]
 }
 
 // Custom task that generates protobuf code in the build directory and adds it to the classpath
