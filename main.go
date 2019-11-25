@@ -16,9 +16,10 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.9.0
+//go:generate go run -tags generate gen.go 3.10.1
 
-const version = "3.9.0"
+// Keep this version in sync with the go:generate statement above
+const version = "3.10.1"
 
 type repo interface {
 	Checkout(rev string) error
@@ -30,7 +31,7 @@ const latestRev = "latest"
 func openRepo(url string) (repo, string, string, error) {
 	parts := strings.Split(url, "/")
 	for i := len(parts); i > 0; i-- {
-		dir := filepath.Join(cacheDir(), "protoc", "repos", filepath.Join(parts[:i]...))
+		dir := cacheFile("repos", filepath.Join(parts[:i]...))
 		// Sometimes go-git gives false positives, check for .git directory before PlainOpen()
 		if info, err := os.Stat(filepath.Join(dir, ".git")); err != nil || !info.IsDir() {
 			continue
@@ -70,7 +71,7 @@ func cloneRepo(url string) (repo, string, error) {
 }
 
 func tryCloneRepo(repoURL string) (repo, string, error) {
-	dir := filepath.Join(cacheDir(), "protoc", "repos", repoURL)
+	dir := cacheFile("repos", repoURL)
 	os.MkdirAll(dir, 0755)
 	log.Println("Trying to clone", repoURL, "into", dir)
 	repo, cloneErr := gitCloneDir(repoURL, dir)
@@ -119,6 +120,9 @@ func processArgs(in []string) ([]string, []string, error) {
 	out := []string{}
 	files := []string{}
 	for n, arg := range in {
+		if arg == "--version" {
+			fmt.Println("protoc wrapper " + version)
+		}
 		if strings.HasPrefix(arg, "-") {
 			// Obsolete, but still supported syntax `-I <somedir>`
 			// Change to the regular syntax `-I=<somedir>`
@@ -213,8 +217,8 @@ var cacheDir = func() string {
 
 // cacheFile returns a path to the local user cache file inside the protoc
 // cache directory.
-func cacheFile(path string) string {
-	return filepath.Join(cacheDir(), "protoc", path)
+func cacheFile(path ...string) string {
+	return filepath.Join(append([]string{cacheDir(), "protoc", version}, path...)...)
 }
 
 // extractProtoc extracts real protoc binary for the current platform. Returns
@@ -234,7 +238,7 @@ func extractProtoc() (string, error) {
 // defer statemenets. All that main() does now is os.Exit() which is not
 // defer-friendly at all.
 func runProtoc() int {
-	os.MkdirAll(filepath.Join(cacheDir(), "protoc"), 0755)
+	os.MkdirAll(cacheFile(), 0755)
 	lockFile, err := os.Create(cacheFile("protoc.lock"))
 	if err != nil {
 		log.Fatal(err)

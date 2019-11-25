@@ -103,7 +103,7 @@ func TestDownload(t *testing.T) {
 	} {
 		if local, err := downloadProto(fmt.Sprintf("%s/%s%s", gitAddr, test.Path, test.Tag)); err != nil {
 			t.Error(err)
-		} else if local != "testcache/protoc/repos/"+gitAddr+"/"+test.Path {
+		} else if local != "testcache/protoc/"+version+"/repos/"+gitAddr+"/"+test.Path {
 			t.Fatal(local)
 		}
 	}
