@@ -86,7 +86,7 @@ func tryCloneRepo(repoURL string) (repo, string, error) {
 }
 
 func downloadProto(url string) (string, error) {
-	url = filepath.Clean(url)
+	url = path.Clean(url)
 	rev := ""
 	if i := strings.LastIndex(url, "@"); i >= 0 {
 		rev = url[i+1:]
