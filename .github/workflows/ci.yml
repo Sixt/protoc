@@ -1,0 +1,48 @@
+on: [push, pull_request, release]
+name: Pipeline
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.x
+    - name: Build
+      run: |
+        VERSION=$(git describe --tags --always | sed 's#^v##')
+        GOOS=linux   GOARCH=amd64 go build -v -o protoc-${VERSION}-linux-x86_64.exe
+        GOOS=linux   GOARCH=386   go build -v -o protoc-${VERSION}-linux-x86_32.exe
+        GOOS=linux   GOARCH=arm64 go build -v -o protoc-${VERSION}-linux-aarch_64.exe
+        GOOS=darwin  GOARCH=amd64 go build -v -o protoc-${VERSION}-osx-x86_64.exe
+        GOOS=darwin  GOARCH=386   go build -v -o protoc-${VERSION}-osx-x86_32.exe
+        GOOS=windows GOARCH=amd64 go build -v -o protoc-${VERSION}-windows-x86_64.exe
+        GOOS=windows GOARCH=386   go build -v -o protoc-${VERSION}-windows-x86_32.exe
+        ls -l *.exe
+    - name: Test
+      run: go test ./...
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v1-release
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: protoc-*.exe
+        tag: ${{ github.ref }}
+        file_glob: true
+    - name: Upload Maven artifacts
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        VERSION=$(git describe --tags --always | sed 's#^v##')
+        cat > pom.xml << EOF
+          <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.sixt.protobuf</groupId>
+          <artifactId>protoc</artifactId>
+          <version>${VERSION}</version>
+          </project>
+        EOF
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}.pom" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "pom.xml"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-x86_64.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-linux-x86_64.exe"
+
