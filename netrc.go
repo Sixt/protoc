@@ -43,7 +43,7 @@ func netrc(r io.Reader, machine string) (username, password string, err error) {
 			if scanner.Scan() && scanner.Text() == machine {
 				foundMachine = true
 			}
-		case "defult":
+		case "default":
 			foundMachine = true
 		}
 	}
