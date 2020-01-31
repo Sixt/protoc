@@ -45,4 +45,10 @@ jobs:
         EOF
         curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}.pom" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "pom.xml"
         curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-x86_64.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-linux-x86_64.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-x86_32.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-linux-x86_32.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-aarch_64.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-linux-aarch_64.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-osx-x86_64.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-osx-x86_64.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-osx-x86_32.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-osx-x86_32.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-windows-x86_64.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-windows-x86_64.exe"
+        curl -X PUT "https://maven.pkg.github.com/sixt/protoc/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-windows-x86_32.exe" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" --upload-file "protoc-${VERSION}-windows-x86_32.exe"
 
