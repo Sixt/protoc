@@ -16,10 +16,10 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.10.1
+//go:generate go run -tags generate gen.go 3.11.0
 
 // Keep this version in sync with the go:generate statement above
-const version = "3.10.1"
+const version = "3.11.0"
 
 type repo interface {
 	Checkout(rev string) error
