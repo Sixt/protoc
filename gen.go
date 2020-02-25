@@ -33,7 +33,6 @@ func main() {
 		"linux-x86_32":   "linux_386",
 		"linux-x86_64":   "linux_amd64",
 		"linux-aarch_64": "linux_arm64",
-		"osx-x86_32":     "darwin_386",
 		"osx-x86_64":     "darwin_amd64",
 		"windows-x86_32": "windows_386",
 		"windows-x86_64": "windows_amd64",
