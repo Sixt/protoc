@@ -105,7 +105,7 @@ func downloadProto(url string) (string, error) {
 	}
 	err = repo.Checkout(rev)
 	if err != nil {
-		if err := repo.Fetch(); err != nil {
+		if err = repo.Fetch(); err != nil {
 			log.Println("fetch failed:", err)
 		} else {
 			err = repo.Checkout(rev)
