@@ -31,7 +31,10 @@ func gitCloneDir(url, dir string) (repo, error) {
 
 func (r *gitRepo) Checkout(rev string) error {
 	if err := gitCmd("-C", r.dir, "checkout", "master"); err != nil {
-		return err
+		// Check for main branch if master branch isn't found
+		if err := gitCmd("-C", r.dir, "checkout", "main"); err != nil {
+			return err
+		}
 	}
 	if rev == "" || rev == latestRev {
 		rev = "HEAD"
