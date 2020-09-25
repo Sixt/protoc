@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 )
 
 type gitRepo struct {
@@ -11,34 +12,50 @@ type gitRepo struct {
 	dir string
 }
 
-func gitCmd(args ...string) error {
-	code := execute("git", args...)
+var re = regexp.MustCompile(`.*HEAD branch: (.*)\n`) // regex to extract default branch name of a repo
+
+func gitCmd(args ...string) (string, error) {
+	output, code := execute("git", args...)
 	if code != 0 {
-		return fmt.Errorf("git failed: exit code %d", code)
+		return "", fmt.Errorf("git failed: exit code %d", code)
 	}
-	return nil
+	return output, nil
 }
 
 func gitOpenDir(url, dir string) (repo, error) {
-	err := gitCmd("-C", dir, "rev-parse")
+	_, err := gitCmd("-C", dir, "rev-parse")
 	return &gitRepo{url: url, dir: dir}, err
 }
 
 func gitCloneDir(url, dir string) (repo, error) {
-	err := gitCmd("clone", "https://"+url, dir)
+	_, err := gitCmd("clone", "https://"+url, dir)
 	return &gitRepo{url: url, dir: dir}, err
 }
 
 func (r *gitRepo) Checkout(rev string) error {
-	if err := gitCmd("-C", r.dir, "checkout", "master"); err != nil {
+	output, err := gitCmd("-C", r.dir, "remote", "show", "origin")
+	if err != nil {
+		return err
+	}
+	defaultBranch := extractBranch(output)
+	if _, err := gitCmd("-C", r.dir, "checkout", defaultBranch); err != nil {
 		return err
 	}
 	if rev == "" || rev == latestRev {
 		rev = "HEAD"
 	}
-	return gitCmd("-C", r.dir, "checkout", "-q", rev)
+	_, err = gitCmd("-C", r.dir, "checkout", "-q", rev)
+	return err
 }
 
 func (r *gitRepo) Fetch() error {
-	return gitCmd("-C", r.dir, "pull")
+	_, err := gitCmd("-C", r.dir, "pull")
+	return err
+}
+
+func extractBranch(output string) string {
+	if !re.MatchString(output) {
+		return "master"
+	}
+	return re.FindStringSubmatch(output)[1]
 }
