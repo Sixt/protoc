@@ -179,8 +179,8 @@ func expandDirs(dirs []string) []string {
 }
 
 // execute runs a command with the provided arguments, using current stdio, and
-// returns command exit status (zero on success).
-func execute(exe string, args ...string) int {
+// returns command output and exit status (zero on success).
+func execute(exe string, args ...string) (string, int) {
 	cmd := exec.Command(exe, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -188,11 +188,12 @@ func execute(exe string, args ...string) int {
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				return status.ExitStatus()
+				return "", status.ExitStatus()
 			}
 		}
 	}
-	return 0
+	output, _ := cmd.Output()
+	return string(output), 0
 }
 
 // cacheDir returns a path to the local user cache using XDG base directory
@@ -262,10 +263,11 @@ func runProtoc() int {
 
 	files = expandDirs(files)
 	if len(files) == 0 {
-		return execute(protocExePath, args...)
+		_, err := execute(protocExePath, args...)
+		return err
 	}
 	for _, f := range files {
-		if exitCode := execute(protocExePath, append(args, f)...); exitCode != 0 {
+		if _, exitCode := execute(protocExePath, append(args, f)...); exitCode != 0 {
 			return exitCode
 		}
 	}
