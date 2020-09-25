@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"regexp"
-	"strings"
 )
 
 type gitRepo struct {
@@ -13,10 +12,12 @@ type gitRepo struct {
 	dir string
 }
 
+var re = regexp.MustCompile(`.*HEAD branch: (.*)\n`) // regex to extract default branch name of a repo
+
 func gitCmd(args ...string) (string, error) {
 	output, code := execute("git", args...)
 	if code != 0 {
-		return "",fmt.Errorf("git failed: exit code %d", code)
+		return "", fmt.Errorf("git failed: exit code %d", code)
 	}
 	return output, nil
 }
@@ -36,9 +37,7 @@ func (r *gitRepo) Checkout(rev string) error {
 	if err != nil {
 		return err
 	}
-	// Fetch the default branch using regex. Example - HEAD branch : master
-	re := regexp.MustCompile(`.*HEAD branch.*`)
-	defaultBranch := strings.Split(re.FindString(output), ":")[1]
+	defaultBranch := extractBranch(output)
 	if _, err := gitCmd("-C", r.dir, "checkout", defaultBranch); err != nil {
 		return err
 	}
@@ -52,4 +51,11 @@ func (r *gitRepo) Checkout(rev string) error {
 func (r *gitRepo) Fetch() error {
 	_, err := gitCmd("-C", r.dir, "pull")
 	return err
+}
+
+func extractBranch(output string) string {
+	if !re.MatchString(output) {
+		return "master"
+	}
+	return re.FindStringSubmatch(output)[1]
 }
