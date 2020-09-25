@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -182,8 +184,9 @@ func expandDirs(dirs []string) []string {
 // returns command output and exit status (zero on success).
 func execute(exe string, args ...string) (string, int) {
 	cmd := exec.Command(exe, args...)
+	var stdoutBuf bytes.Buffer
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -192,8 +195,8 @@ func execute(exe string, args ...string) (string, int) {
 			}
 		}
 	}
-	output, _ := cmd.Output()
-	return string(output), 0
+	output := string(stdoutBuf.Bytes())
+	return output, 0
 }
 
 // cacheDir returns a path to the local user cache using XDG base directory
