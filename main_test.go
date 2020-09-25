@@ -10,13 +10,13 @@ func TestExecute(t *testing.T) {
 		t.Skip()
 	}
 
-	if exit := execute("true"); exit != 0 {
+	if _, exit := execute("true"); exit != 0 {
 		t.Fatal(exit)
 	}
-	if exit := execute("false"); exit != 1 {
+	if _, exit := execute("false"); exit != 1 {
 		t.Fatal(exit)
 	}
-	if exit := execute("sh", "-c", "exit 42"); exit != 42 {
+	if _, exit := execute("sh", "-c", "exit 42"); exit != 42 {
 		t.Fatal(exit)
 	}
 }
