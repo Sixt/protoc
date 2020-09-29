@@ -81,7 +81,7 @@ repositories {
 apply plugin: 'java'
 
 dependencies {
-  compile 'com.google.protobuf:protobuf-java:+'
+  mavenCentral()
 }
 
 // Create separate configuration for protoc artifacts
