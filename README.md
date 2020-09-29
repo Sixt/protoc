@@ -73,9 +73,6 @@ If using Gradle as a build system, you will need to create a custom task that wi
 ```gradle
 repositories {
   mavenCentral()
-  maven {
-    url "https://maven.pkg.github.com/sixt/protoc"
-  }
 }
 
 apply plugin: 'java'
