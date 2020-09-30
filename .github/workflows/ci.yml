@@ -10,6 +10,12 @@ jobs:
       uses: actions/setup-go@v1
       with:
         go-version: 1.13.x
+    - name: Import GPG key
+      id: import_gpg
+      uses: crazy-max/ghaction-import-gpg@v3
+      with:
+        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
     - name: Build
       run: |
         VERSION=$(git describe --tags --always | sed 's#^v##')
@@ -22,21 +28,15 @@ jobs:
         ls -l *.exe
     - name: Test
       run: go test ./...
-    - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v1-release
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: protoc-*.exe
-        tag: ${{ github.ref }}
-        file_glob: true
-        overwrite: true
-    - name: Upload Maven artifacts
+    - name: Sign and upload Maven artifacts
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         VERSION=$(git describe --tags --always | sed 's#^v##')
         MAVEN='https://oss.sonatype.org/service/local/staging/deploy/maven2'
         MAVEN_AUTH='${{ secrets.sonatype_username }}:${{ secrets.sonatype_password }}'
+        GPG_KEY_ID='${{ steps.import_gpg.outputs.keyid }}'
+        GPG_PASSPHARSE='${{ secrets.PASSPHRASE }}'
+
         cat > pom.xml << EOF
           <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
           <modelVersion>4.0.0</modelVersion>
@@ -45,11 +45,20 @@ jobs:
           <version>${VERSION}</version>
           </project>
         EOF
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}.pom" --upload-file "pom.xml"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-x86_64.exe" --upload-file "protoc-${VERSION}-linux-x86_64.exe"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-x86_32.exe" --upload-file "protoc-${VERSION}-linux-x86_32.exe"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-linux-aarch_64.exe" --upload-file "protoc-${VERSION}-linux-aarch_64.exe"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-osx-x86_64.exe" --upload-file "protoc-${VERSION}-osx-x86_64.exe"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-windows-x86_64.exe" --upload-file "protoc-${VERSION}-windows-x86_64.exe"
-        curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/protoc-${VERSION}-windows-x86_32.exe" --upload-file "protoc-${VERSION}-windows-x86_32.exe"
 
+        FILES=(pom.xml protoc-${VERSION}-linux-x86_64.exe protoc-${VERSION}-linux-x86_32.exe protoc-${VERSION}-linux-aarch_64.exe protoc-${VERSION}-osx-x86_64.exe protoc-${VERSION}-windows-x86_64.exe protoc-${VERSION}-windows-x86_32.exe)
+
+        # generate sha512
+        for f in "${FILES[@]}"; do sha512sum $f > $f.sha512; done;
+
+        # sign files
+        for f in "${FILES[@]}"; do gpg --local-user $GPG_KEY_ID --batch --yes --passphrase=$GPG_PASSPHARSE --yes --pinentry-mode loopback -ab $f; done;
+
+        # upload checksums
+        for f in "${FILES[@]}"; do curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/${f}.sha512" --upload-file "${f}.sha512"; done;
+
+        # upload signed files
+        for f in "${FILES[@]}"; do curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/${f}.asc" --upload-file "${f}.asc"; done;
+
+        # upload executables
+        for f in "${FILES[@]}"; do curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/$f" --upload-file "$f"; done;
