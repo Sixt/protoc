@@ -84,7 +84,7 @@ dependencies {
 // Create separate configuration for protoc artifacts
 configurations { protoc }
 dependencies {
-  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.10.0', ext: 'exe',
+  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.11.4-2', ext: 'exe',
   classifier: [
     'Windows:amd64': 'windows-x86_64',
     'Windows:i386': 'windows-x86_32',
