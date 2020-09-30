@@ -35,7 +35,7 @@ jobs:
         MAVEN='https://oss.sonatype.org/service/local/staging/deploy/maven2'
         MAVEN_AUTH='${{ secrets.sonatype_username }}:${{ secrets.sonatype_password }}'
         GPG_KEY_ID='${{ steps.import_gpg.outputs.keyid }}'
-        GPG_PASSPHARSE='${{ secrets.PASSPHRASE }}'
+        GPG_PASSPHRASE='${{ secrets.GPG_PASSPHRASE }}'
 
         cat > pom.xml << EOF
           <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -52,7 +52,7 @@ jobs:
         for f in "${FILES[@]}"; do sha512sum $f > $f.sha512; done;
 
         # sign files
-        for f in "${FILES[@]}"; do gpg --local-user $GPG_KEY_ID --batch --yes --passphrase=$GPG_PASSPHARSE --yes --pinentry-mode loopback -ab $f; done;
+        for f in "${FILES[@]}"; do gpg --local-user $GPG_KEY_ID --batch --yes --passphrase=GPG_PASSPHRASE --yes --pinentry-mode loopback -ab $f; done;
 
         # upload checksums
         for f in "${FILES[@]}"; do curl -X PUT -u "$MAVEN_AUTH" "$MAVEN/com/sixt/protobuf/protoc/${VERSION}/${f}.sha512" --upload-file "${f}.sha512"; done;
