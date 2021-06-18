@@ -3,19 +3,25 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 const (
-	baseURL = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
+	protoBinariesbaseURL = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
+	protoIncludesBaseUrl = "https://github.com/protocolbuffers/protobuf/releases/download"
+	projectIncludesDir   = "include/google/protobuf"
 )
 
 func download(url string) ([]byte, error) {
+	fmt.Println(url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -29,6 +35,68 @@ func main() {
 		log.Fatal("USAGE: go run -tags generate gen.go <version>")
 	}
 	version := os.Args[1]
+	generateProtoBinaries(version)
+	generateProtoIncludes(version)
+}
+
+func generateProtoIncludes(version string) {
+	// any arch for which distribution is packaged can be used. All contain same protos
+	arch := "linux-x86_64"
+	url := fmt.Sprintf("%[1]s/v%[2]s/protoc-%[2]s-%[3]s.zip", protoIncludesBaseUrl, version, arch)
+
+	body, err := download(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ensureIncludesDir()
+	for _, zipFile := range zipReader.File {
+		if filepath.Ext(zipFile.Name) == ".proto" {
+			unzippedFileBytes, err := readZipFile(zipFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			ensureDir(zipFile.Name)
+			f, err := os.Create(zipFile.Name)
+			if err != nil {
+				log.Fatal(err)
+			}
+			f.Write(unzippedFileBytes)
+			f.Close()
+		}
+	}
+}
+
+func ensureDir(path string) {
+	dirs := filepath.Dir(path)
+	if err := os.MkdirAll(dirs, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func ensureIncludesDir() {
+	if err := os.RemoveAll(projectIncludesDir); err != nil {
+		log.Fatal(err)
+	}
+	ensureDir(projectIncludesDir)
+}
+
+func readZipFile(zf *zip.File) ([]byte, error) {
+	f, err := zf.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
+func generateProtoBinaries(version string) {
 	platforms := map[string]string{
 		"linux-x86_32":   "linux_386",
 		"linux-x86_64":   "linux_amd64",
@@ -39,7 +107,7 @@ func main() {
 	}
 
 	for arch, goarch := range platforms {
-		url := fmt.Sprintf("%[1]s/%[2]s/protoc-%[2]s-%[3]s.exe", baseURL, version, arch)
+		url := fmt.Sprintf("%[1]s/%[2]s/protoc-%[2]s-%[3]s.exe", protoBinariesbaseURL, version, arch)
 		exe, err := download(url)
 		if err != nil {
 			log.Fatal(err)
