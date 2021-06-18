@@ -17,7 +17,7 @@ import (
 const (
 	protoBinariesbaseURL = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
 	protoIncludesBaseUrl = "https://github.com/protocolbuffers/protobuf/releases/download"
-	projectIncludesDir   = "include/google/protobuf"
+	includesDir          = "include"
 )
 
 func download(url string) ([]byte, error) {
@@ -35,7 +35,7 @@ func main() {
 		log.Fatal("USAGE: go run -tags generate gen.go <version>")
 	}
 	version := os.Args[1]
-	generateProtoBinaries(version)
+	//generateProtoBinaries(version)
 	generateProtoIncludes(version)
 }
 
@@ -81,10 +81,10 @@ func ensureDir(path string) {
 }
 
 func ensureIncludesDir() {
-	if err := os.RemoveAll(projectIncludesDir); err != nil {
+	if err := os.RemoveAll(includesDir); err != nil {
 		log.Fatal(err)
 	}
-	ensureDir(projectIncludesDir)
+	ensureDir(includesDir)
 }
 
 func readZipFile(zf *zip.File) ([]byte, error) {

@@ -25,7 +25,7 @@ import (
 // Keep this version in sync with the go:generate statement above
 const (
 	version                     = "3.11.4"
-	includesDir                 = "include/google/protobuf"
+	includesDir                 = "include"
 	includesCacheFilePermission = 0664
 	includesCacheDirPermission  = 0775
 )
@@ -182,7 +182,6 @@ func processArgs(in []string) ([]string, []string, error) {
 // copies the upstream proto includes to the cache.
 // Does not copy if the file is already present.
 func copyIncludesToCache(dirPath string) error {
-	fmt.Println(dirPath)
 	dst := filepath.Join(cacheDir(), "protoc", version, dirPath)
 
 	err := os.MkdirAll(dst, includesCacheDirPermission)
