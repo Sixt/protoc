@@ -21,7 +21,7 @@ const (
 )
 
 func download(url string) ([]byte, error) {
-	fmt.Println(url)
+	log.Println(url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func main() {
 		log.Fatal("USAGE: go run -tags generate gen.go <version>")
 	}
 	version := os.Args[1]
-	//generateProtoBinaries(version)
+	generateProtoBinaries(version)
 	generateProtoIncludes(version)
 }
 
