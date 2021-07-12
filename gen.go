@@ -21,7 +21,6 @@ const (
 )
 
 func download(url string) ([]byte, error) {
-	log.Println(url)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
