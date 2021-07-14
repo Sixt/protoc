@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"runtime"
 	"testing"
 )
@@ -71,5 +74,35 @@ func Test_extractBranchDefaultMasterBranch(t *testing.T) {
 	branch := extractBranch(output)
 	if branch != "master" {
 		t.Fatal("failed extracting branch")
+	}
+}
+
+func Test_copyIncludesToCache(t *testing.T) {
+	// given
+	// check if the includes are present in the project
+	checkIfDirIsNotEmpty(t, includesDir)
+
+	tempDir, err := ioutil.TempDir("", "")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	os.Setenv("PROTOC_CACHE_DIR", tempDir)
+	defer os.Unsetenv("PROTOC_CACHE_DIR")
+
+	// when
+	err = copyIncludesToCache(includesDir)
+
+	// then
+	assert.NoError(t, err)
+	checkIfDirIsNotEmpty(t, tempDir)
+}
+
+func checkIfDirIsNotEmpty(t *testing.T, path string) {
+	dirs, err := os.ReadDir(path)
+	assert.NoError(t, err)
+	for _, d := range dirs {
+		f, err := d.Info()
+		assert.NoError(t, err)
+		assert.True(t, f.Size() != 0)
 	}
 }

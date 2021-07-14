@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
+	"embed"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -21,7 +23,15 @@ import (
 //go:generate go run -tags generate gen.go 3.11.4
 
 // Keep this version in sync with the go:generate statement above
-const version = "3.11.4"
+const (
+	version                     = "3.11.4"
+	includesDir                 = "include"
+	includesCacheFilePermission = 0664
+	includesCacheDirPermission  = 0775
+)
+
+//go:embed include/google/protobuf
+var include embed.FS
 
 type repo interface {
 	Checkout(rev string) error
@@ -160,7 +170,54 @@ func processArgs(in []string) ([]string, []string, error) {
 			files = append(files, local)
 		}
 	}
+	//copy include files to cache
+	err := copyIncludesToCache(includesDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	out = append(out, "-I="+cacheFile(filepath.Join(includesDir)))
 	return out, files, nil
+}
+
+// copies the upstream proto includes to the cache.
+// Does not copy if the file is already present.
+func copyIncludesToCache(dirPath string) error {
+	dst := filepath.Join(cacheDir(), "protoc", version, dirPath)
+
+	err := os.MkdirAll(dst, includesCacheDirPermission)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dirs, err := include.ReadDir(dirPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, fd := range dirs {
+
+		if fd.IsDir() {
+			if err := copyIncludesToCache(path.Join(dirPath, fd.Name())); err != nil {
+				log.Fatal(err)
+			}
+			continue
+		}
+
+		srcFB, err := fs.ReadFile(include, path.Join(dirPath, fd.Name()))
+		if err != nil {
+			log.Fatal(err)
+		}
+		dstfp := path.Join(dst, fd.Name())
+
+		if _, err = os.Stat(dstfp); err != nil && os.IsNotExist(err) {
+			if err = ioutil.WriteFile(dstfp, srcFB, includesCacheFilePermission); err != nil {
+				log.Fatal(err)
+			}
+		} else if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return err
 }
 
 func expandDirs(dirs []string) []string {
