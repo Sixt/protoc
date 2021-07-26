@@ -96,16 +96,16 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 }
 
 func generateProtoBinaries(version string) {
-	platforms := map[string]string{
-		"linux-x86_32":   "linux_386",
-		"linux-x86_64":   "linux_amd64",
-		"linux-aarch_64": "linux_arm64",
-		"osx-x86_64":     "darwin_amd64",
-		"windows-x86_32": "windows_386",
-		"windows-x86_64": "windows_amd64",
+	platforms := map[string][]string{
+		"linux-x86_32":   {"linux_386"},
+		"linux-x86_64":   {"linux_amd64"},
+		"linux-aarch_64": {"linux_arm64"},
+		"osx-x86_64":     {"darwin_amd64", "darwin_arm64"},
+		"windows-x86_32": {"windows_386"},
+		"windows-x86_64": {"windows_amd64"},
 	}
 
-	for arch, goarch := range platforms {
+	for arch, goarches := range platforms {
 		url := fmt.Sprintf("%[1]s/%[2]s/protoc-%[2]s-%[3]s.exe", protoBinariesbaseURL, version, arch)
 		exe, err := download(url)
 		if err != nil {
@@ -120,33 +120,27 @@ func generateProtoBinaries(version string) {
 		if s := fmt.Sprintf("%x", md5.Sum(exe)); s != string(cksum) {
 			log.Fatalln("checksum mismatch: ", url, s, string(cksum))
 		}
-		f, err := os.Create(fmt.Sprintf("protoc_exe_%s.go", goarch))
+
+		os.MkdirAll("binaries", 0777)
+
+		dst := fmt.Sprintf("binaries/protoc_%s_%s", version, arch)
+		err = ioutil.WriteFile(dst, exe, 0666)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer f.Close()
-		fmt.Fprintln(f, "package main")
-		fmt.Fprintln(f)
-		fmt.Fprint(f, `var protoc = []byte("`)
-		defer fmt.Fprintln(f, `")`)
-		for _, b := range exe {
-			if b == '\n' {
-				f.WriteString(`\n`)
-				continue
+
+		for _, goarch := range goarches {
+			f, err := os.Create(fmt.Sprintf("protoc_exe_%s.go", goarch))
+			if err != nil {
+				log.Fatal(err)
 			}
-			if b == '\\' {
-				f.WriteString(`\\`)
-				continue
-			}
-			if b == '"' {
-				f.WriteString(`\"`)
-				continue
-			}
-			if (b >= 32 && b <= 126) || b == '\t' {
-				f.Write([]byte{b})
-				continue
-			}
-			fmt.Fprintf(f, "\\x%02x", b)
+			defer f.Close()
+			fmt.Fprintln(f, "package main")
+			fmt.Fprintln(f)
+			fmt.Fprintln(f, `import _ "embed"`)
+			fmt.Fprintln(f)
+			fmt.Fprintf(f, "//go:embed %s\n", dst)
+			fmt.Fprintln(f, "var protoc []byte")
 		}
 	}
 }
