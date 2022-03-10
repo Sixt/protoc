@@ -37,16 +37,35 @@ jobs:
         GPG_KEY_ID='${{ steps.import_gpg.outputs.keyid }}'
         GPG_PASSPHRASE='${{ secrets.GPG_PASSPHRASE }}'
 
-        cat > pom.xml << EOF
-          <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+        cat > protoc-${VERSION}.pom <<EOF
+        <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
           <modelVersion>4.0.0</modelVersion>
           <groupId>com.sixt.protobuf</groupId>
           <artifactId>protoc</artifactId>
           <version>${VERSION}</version>
-          </project>
+          <url>https://github.com/Sixt/protoc</url>
+          <name>protoc</name>
+          <description>Simple, backwards-compatible, Go and Java friendly protoc wrapper with remote proto files support</description>
+          <organization>
+            <name>Sixt SE</name>
+            <url>https://about.sixt.com</url>
+          </organization>
+          <licenses>
+            <license>
+              <name>Apache License, Version 2.0</name>
+              <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+              <distribution>repo</distribution>
+            </license>
+          </licenses>
+          <scm>
+            <connection>scm:git:git://github.com/Sixt/protoc</connection>
+            <developerConnection>scm:git:git://github.com/Sixt/protoc</developerConnection>
+            <url>https://github.com/Sixt/protoc</url>
+          </scm>
+        </project>
         EOF
 
-        FILES=(pom.xml protoc-${VERSION}-linux-x86_64.exe protoc-${VERSION}-linux-x86_32.exe protoc-${VERSION}-linux-aarch_64.exe protoc-${VERSION}-osx-x86_64.exe protoc-${VERSION}-windows-x86_64.exe protoc-${VERSION}-windows-x86_32.exe)
+        FILES=(protoc-${VERSION}.pom protoc-${VERSION}-linux-x86_64.exe protoc-${VERSION}-linux-x86_32.exe protoc-${VERSION}-linux-aarch_64.exe protoc-${VERSION}-osx-x86_64.exe protoc-${VERSION}-windows-x86_64.exe protoc-${VERSION}-windows-x86_32.exe)
 
         # generate sha512
         for f in "${FILES[@]}"; do sha512sum $f > $f.sha512; done;
