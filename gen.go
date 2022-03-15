@@ -1,3 +1,4 @@
+//go:build generage
 // +build generage
 
 package main
@@ -101,6 +102,7 @@ func generateProtoBinaries(version string) {
 		"linux-x86_64":   "linux_amd64",
 		"linux-aarch_64": "linux_arm64",
 		"osx-x86_64":     "darwin_amd64",
+		"osx-aarch_64":   "darwin_arm64",
 		"windows-x86_32": "windows_386",
 		"windows-x86_64": "windows_amd64",
 	}

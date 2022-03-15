@@ -9,7 +9,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.16.x
+        go-version: 1.17.x
     - name: Import GPG key
       id: import_gpg
       uses: crazy-max/ghaction-import-gpg@v3
@@ -23,6 +23,7 @@ jobs:
         GOOS=linux   GOARCH=386   go build -v -o protoc-${VERSION}-linux-x86_32.exe
         GOOS=linux   GOARCH=arm64 go build -v -o protoc-${VERSION}-linux-aarch_64.exe
         GOOS=darwin  GOARCH=amd64 go build -v -o protoc-${VERSION}-osx-x86_64.exe
+        GOOS=darwin  GOARCH=arm64 go build -v -o protoc-${VERSION}-osx-aarch_64.exe
         GOOS=windows GOARCH=amd64 go build -v -o protoc-${VERSION}-windows-x86_64.exe
         GOOS=windows GOARCH=386   go build -v -o protoc-${VERSION}-windows-x86_32.exe
         ls -l *.exe

@@ -84,7 +84,7 @@ dependencies {
 // Create separate configuration for protoc artifacts
 configurations { protoc }
 dependencies {
-  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.11.4-2', ext: 'exe',
+  protoc group: 'com.sixt.protobuf', name: 'protoc', version: '3.19.2', ext: 'exe',
   classifier: [
     'Windows:amd64': 'windows-x86_64',
     'Windows:i386': 'windows-x86_32',
@@ -92,6 +92,7 @@ dependencies {
     'Linux:i386': 'linux-x86_32',
     'Mac OS X:amd64': 'osx-x86_64',
     'Mac OS X:x86_64': 'osx-x86_64',
+    'Mac OS X:aarch64': 'osx-aarch_64',
   ]["${System.getProperty("os.name").toLowerCase().contains("windows") ? "Windows" : System.getProperty('os.name')}:${System.getProperty('os.arch')}"]
 }
 
