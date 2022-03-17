@@ -20,11 +20,11 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.11.4
+//go:generate go run -tags generate gen.go 3.19.2
 
 // Keep this version in sync with the go:generate statement above
 const (
-	version                     = "3.11.4"
+	version                     = "3.19.2"
 	includesDir                 = "include"
 	includesCacheFilePermission = 0664
 	includesCacheDirPermission  = 0775
