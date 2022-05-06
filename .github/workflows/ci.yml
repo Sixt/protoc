@@ -66,7 +66,7 @@ jobs:
         </project>
         EOF
 
-        FILES=(protoc-${VERSION}.pom protoc-${VERSION}-linux-x86_64.exe protoc-${VERSION}-linux-x86_32.exe protoc-${VERSION}-linux-aarch_64.exe protoc-${VERSION}-osx-x86_64.exe protoc-${VERSION}-windows-x86_64.exe protoc-${VERSION}-windows-x86_32.exe)
+        FILES=(protoc-${VERSION}.pom protoc-${VERSION}-linux-x86_64.exe protoc-${VERSION}-linux-x86_32.exe protoc-${VERSION}-linux-aarch_64.exe protoc-${VERSION}-osx-x86_64.exe protoc-${VERSION}-osx-aarch_64.exe protoc-${VERSION}-windows-x86_64.exe protoc-${VERSION}-windows-x86_32.exe)
 
         # generate sha512
         for f in "${FILES[@]}"; do sha512sum $f > $f.sha512; done;
