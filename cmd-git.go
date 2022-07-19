@@ -1,4 +1,4 @@
-//+build !gogit
+//go:build !gogit
 
 package main
 

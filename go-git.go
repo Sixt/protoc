@@ -1,4 +1,4 @@
-//+build gogit
+//go:build gogit
 
 package main
 
@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	git "gopkg.in/src-d/go-git.v4"
-	plumbing "gopkg.in/src-d/go-git.v4/plumbing"
-	transport "gopkg.in/src-d/go-git.v4/plumbing/transport"
-	http "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	ssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
+	git "github.com/go-git/go-git/v5"
+	plumbing "github.com/go-git/go-git/v5/plumbing"
+	transport "github.com/go-git/go-git/v5/plumbing/transport"
+	http "github.com/go-git/go-git/v5/plumbing/transport/http"
+	ssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
 func netrcAuth(importPath string) transport.AuthMethod {
