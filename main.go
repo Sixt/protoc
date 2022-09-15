@@ -311,33 +311,47 @@ func downloadProtoc() (string, error) {
 		return protocExePath, nil
 	}
 
-	log.Println("saving protoc to path: ", protocExePath)
+	var err error
+	defer func() {
+		if err != nil {
+			// if we have download or checksum validation error need to clean up created file
+			// os.PathError let us know that temp empty file wasn't created by os.Create(), e.g. permission issue
+			if _, ok := err.(*os.PathError); !ok {
+				if rerr := os.Remove(protocExePath); rerr != nil {
+					fmt.Println("unable to delete file %w", rerr)
+				}
+			}
+		}
+	}()
 
+	log.Println("saving protoc to path: ", protocExePath)
 	url := fmt.Sprintf("%[1]s/%[2]s/protoc-%[2]s-%[3]s.exe", protoBinariesBaseURL, version, arch)
-	err := downloadFile(protocExePath, url)
+
+	err = downloadFile(protocExePath, url)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	err = os.Chmod(protocExePath, 0755)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	cksum, err := download(url + ".md5")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	f, err := os.Open(protocExePath)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer f.Close()
 
 	h := md5.New()
 	if _, err = io.Copy(h, f); err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	if s := fmt.Sprintf("%x", h.Sum(nil)); s != string(cksum) {
-		log.Fatal("checksum mismatch: ", url, s, string(cksum))
+		err := fmt.Errorf("checksum mismatch: %s, %s, %s", url, s, string(cksum))
+		return "", err
 	}
 
 	return protocExePath, nil
