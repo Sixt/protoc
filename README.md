@@ -21,7 +21,7 @@ Wrapper binaries are also published to Maven repo, so that they could be used in
 
 ## How it works
 
-First of all, wrapper extracts the real `protoc` binary into the user's cache directory (including the protos provided by the upstream protoc distribution). Default cache directory on Linux is ~/.cache/protoc (unless `$XDG_CACHE_HOME` is provided). Default cache directory on macOS is ~/Library/Caches. Protoc binary is extracted only once, if there is an existing binary in the cache with the matching checksum - it will be used instead.
+First of all, wrapper downloads the real `protoc` binary into the user's cache directory (including the protos provided by the upstream protoc distribution). Default cache directory on Linux is ~/.cache/protoc (unless `$XDG_CACHE_HOME` is provided). Default cache directory on macOS is ~/Library/Caches. Protoc binary is downloaded only once, if there is an existing binary in the cache with the matching checksum - it will be used instead.
 
 Then, wrapper parses all command line flags. If an argument looks like a path to the proto file - wrapper checks whether the path exists on the local machine. If not - then it's likely to be a remote proto file URL.
 

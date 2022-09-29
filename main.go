@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -20,15 +21,26 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 3.19.2
+//go:generate go run -tags generate gen.go 21.2
 
 // Keep this version in sync with the go:generate statement above
 const (
-	version                     = "3.19.2"
+	version                     = "3.21.2"
+	protoBinariesBaseURL        = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
 	includesDir                 = "include"
 	includesCacheFilePermission = 0664
 	includesCacheDirPermission  = 0775
 )
+
+var platforms = map[string]string{
+	"linux_386":     "linux-x86_32",
+	"linux_amd64":   "linux-x86_64",
+	"linux_arm64":   "linux-aarch_64",
+	"darwin_amd64":  "osx-x86_64",
+	"darwin_arm64":  "osx-aarch_64",
+	"windows_386":   "windows-x86_32",
+	"windows_amd64": "windows-x86_64",
+}
 
 //go:embed include/google/protobuf
 var include embed.FS
@@ -129,8 +141,8 @@ func downloadProto(url string) (string, error) {
 // processArgs converts protoc command line arguments by replacing remote
 // repository URLs with local paths.
 func processArgs(in []string) ([]string, []string, error) {
-	out := []string{}
-	files := []string{}
+	var out []string
+	var files []string
 	for n, arg := range in {
 		if arg == "--version" {
 			fmt.Println("protoc wrapper " + version)
@@ -282,21 +294,71 @@ func cacheFile(path ...string) string {
 	return filepath.Join(append([]string{cacheDir(), "protoc", version}, path...)...)
 }
 
-// extractProtoc extracts real protoc binary for the current platform. Returns
-// absolute path to the protoc binary, or an error.
-func extractProtoc() (string, error) {
+// downloadProtoc downloads protoc binary for the current platform. Returns
+// absolute path to the protoc binary, or an error
+func downloadProtoc() (string, error) {
+	var arch string
+	var ok bool
+	runtimeArch := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
+	if arch, ok = platforms[runtimeArch]; !ok {
+		return "", fmt.Errorf("unable to resolve architecture for GOOS=%s GOARCH=%s", runtime.GOOS, runtime.GOARCH)
+	}
+
 	protocExeName := fmt.Sprintf("protoc-%s-%s_%s.exe", version, runtime.GOOS, runtime.GOARCH)
 	protocExePath := cacheFile(protocExeName)
-	b, err := ioutil.ReadFile(protocExePath)
-	if err != nil || md5.Sum(b) != md5.Sum(protoc) {
-		// Checksum mismatch, create a new binary in the temporary directory
-		err = ioutil.WriteFile(protocExePath, protoc, 0755)
+
+	if _, err := os.Stat(protocExePath); err == nil {
+		return protocExePath, nil
 	}
-	return protocExePath, err
+
+	var err error
+	defer func() {
+		if err != nil {
+			// if we have download or checksum validation error need to clean up created file
+			// os.PathError let us know that temp empty file wasn't created by os.Create(), e.g. permission issue
+			if _, ok := err.(*os.PathError); !ok {
+				if rerr := os.Remove(protocExePath); rerr != nil {
+					fmt.Println("unable to delete file %w", rerr)
+				}
+			}
+		}
+	}()
+
+	log.Println("saving protoc to path: ", protocExePath)
+	url := fmt.Sprintf("%[1]s/%[2]s/protoc-%[2]s-%[3]s.exe", protoBinariesBaseURL, version, arch)
+
+	err = downloadFile(protocExePath, url)
+	if err != nil {
+		return "", err
+	}
+	err = os.Chmod(protocExePath, 0755)
+	if err != nil {
+		return "", err
+	}
+	cksum, err := download(url + ".md5")
+	if err != nil {
+		return "", err
+	}
+	f, err := os.Open(protocExePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := md5.New()
+	if _, err = io.Copy(h, f); err != nil {
+		return "", err
+	}
+	if s := fmt.Sprintf("%x", h.Sum(nil)); s != string(cksum) {
+		err := fmt.Errorf("checksum mismatch: %s, %s, %s", url, s, string(cksum))
+		return "", err
+	}
+
+	return protocExePath, nil
 }
 
 // runProtoc() is the main function. It is moved outside of main to make use of
-// defer statemenets. All that main() does now is os.Exit() which is not
+// defer statements. All that main() does now is os.Exit() which is not
 // defer-friendly at all.
 func runProtoc() int {
 	os.MkdirAll(cacheFile(), 0755)
@@ -311,9 +373,9 @@ func runProtoc() int {
 	}
 	defer unlock(lockFile)
 
-	protocExePath, err := extractProtoc()
+	protocExePath, err := downloadProtoc()
 	if err != nil {
-		log.Fatal("extract protoc:", err)
+		log.Fatal("download protoc:", err)
 	}
 
 	args, files, err := processArgs(os.Args[1:])
@@ -332,6 +394,40 @@ func runProtoc() int {
 		}
 	}
 	return 0
+}
+
+func download(url string) ([]byte, error) {
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	return ioutil.ReadAll(res.Body)
+}
+
+// downloadFile downloads and saves file
+func downloadFile(filepath string, url string) (err error) {
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
