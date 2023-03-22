@@ -1,6 +1,6 @@
 # ⛔️ DEPRECATED ⛔️
 
->  This project is discontinued. It's only receiving limited maintenance and updates. If you find it useful, feel free to fork it.
+>  This project is discontinued. It's code is provided as-is, and receives only limited maintenance and updates. If you find the project useful, feel free to fork it.
 
 Alternative solution approaches to [Sixt/protoc](https://github.com/sixt/protoc) you may want to consider:
 
