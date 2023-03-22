@@ -1,6 +1,16 @@
+# ⛔️ DEPRECATED ⛔️
+
+>  This project is discontinued. It's only receiving limited maintenance and updates. If you find it useful, feel free to fork it.
+
+Alternative solution approaches to [Sixt/protoc](https://github.com/sixt/protoc) you may want to consider:
+
+* Build proto stubs centrally, publish them as artifacts and use them with the native language features of the consumer, e.g. Maven/Gradle depenencies for Java, go modules for go.
+* Vendor proto contracts or generated files into the contract consumer project.
+* Use a git-native mechanism, e.g. git submodules, to include content into the consumer repo.
+
 # protoc
 
-This is a small, simple and backwards-compatible [protoc][protoc] wrapper.
+This is a small, simple and backwards-compatible [protoc][protoc] wrapper. It enables you to compile proto files from remote git repos.
 
 * [Features](#features)
 * [How it works](#how-it-works)
