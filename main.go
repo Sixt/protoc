@@ -21,11 +21,11 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 22.2
+//go:generate go run -tags generate gen.go 23.3
 
 // Keep this version in sync with the go:generate statement above
 const (
-	version                     = "3.22.2"
+	version                     = "3.23.3"
 	protoBinariesBaseURL        = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
 	includesDir                 = "include"
 	includesCacheFilePermission = 0664
