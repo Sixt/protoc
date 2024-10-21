@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -21,11 +20,11 @@ import (
 	"syscall"
 )
 
-//go:generate go run -tags generate gen.go 22.2
+//go:generate go run -tags generate gen.go 28.2
 
 // Keep this version in sync with the go:generate statement above
 const (
-	version                     = "3.22.2"
+	version                     = "4.28.2"
 	protoBinariesBaseURL        = "https://repo1.maven.org/maven2/com/google/protobuf/protoc"
 	includesDir                 = "include"
 	includesCacheFilePermission = 0664
@@ -221,7 +220,7 @@ func copyIncludesToCache(dirPath string) error {
 		dstfp := path.Join(dst, fd.Name())
 
 		if _, err = os.Stat(dstfp); err != nil && os.IsNotExist(err) {
-			if err = ioutil.WriteFile(dstfp, srcFB, includesCacheFilePermission); err != nil {
+			if err = os.WriteFile(dstfp, srcFB, includesCacheFilePermission); err != nil {
 				log.Fatal(err)
 			}
 		} else if err != nil {
@@ -402,7 +401,7 @@ func download(url string) ([]byte, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 // downloadFile downloads and saves file

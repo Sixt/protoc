@@ -19,7 +19,7 @@ This is a small, simple and backwards-compatible [protoc][protoc] wrapper. It en
 
 ## Features
 
-It is go-gettable. One can do `go get github.com/sixt/protoc/v3` to install protoc. This enables managing protoc version inside `go.mod` when using the [recommended][tools-go] `tools.go` approach.
+It is go-gettable. One can do `go get github.com/sixt/protoc/v4` to install protoc. This enables managing protoc version inside `go.mod` when using the [recommended][tools-go] `tools.go` approach.
 
 It supports proto files hosted in Git repositories. One can specify a local path to the proto file, or a remote URL, e.g. `github.com/myorg/myrepo/foo.proto`.
 
@@ -57,14 +57,14 @@ Here's a sample tools.go:
 //+build tools
 package example
 
-//go:generate go install github.com/sixt/protoc/v3
+//go:generate go install github.com/sixt/protoc/v4
 //go:generate go install github.com/golang/protobuf/protoc-gen-go
 //go:generate go install github.com/micro/protoc-gen-micro
 
 //go:generate protoc --go_out=. foo.proto
 
 import (
-	_ "github.com/sixt/protoc/v3"
+	_ "github.com/sixt/protoc/v4"
 	_ "github.com/golang/protobuf/protoc-gen-go"
 	_ "github.com/micro/protoc-gen-micro"
 )
